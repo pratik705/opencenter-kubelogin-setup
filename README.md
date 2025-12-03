@@ -11,12 +11,15 @@ This script automates the setup process for OIDC-based authentication with OpenC
 - Setting up device code authentication flow
 - Cross-platform support (macOS and Linux)
 
+---
+
 ## Prerequisites
 
 - **kubectl** must be installed and accessible in your PATH
 - **curl** and **tar** commands available
 - **sudo** access (only for yq installation on macOS)
-- Active OpenCenter Kubernetes cluster configuration in kubeconfig
+
+---
 
 ## Quick Start
 
@@ -27,183 +30,372 @@ curl -O https://raw.githubusercontent.com/pratik705/opencenter-kubelogin-setup/r
 chmod +x setup-opencenter-kube-oidc.sh
 ```
 
-### 2. Get Your Credentials
+### 2. Get Required Details
 
 Contact your OpenCenter administrator to obtain:
 
 - OIDC Issuer URL
 - OIDC Client Secret
+- Kubernetes API details
+- Kubernetes CA Certificate
 - Kubernetes Cluster Name
 
-### 3. Run the Setup
+### Interactive Mode
 
 ```bash
-export OIDC_ISSUER_URL="https://auth.demo.stage.sjc3.k8s.opencenter.cloud/realms/opencenter" \
-export OIDC_CLIENT_SECRET="your-client-secret" \
-export KUBE_CLUSTER_NAME="cluster.local" \
+chmod +x setup-opencenter-kube-oidc.sh
 ./setup-opencenter-kube-oidc.sh
 ```
 
-### 4. Test Your Connection
+Follow the prompts.
+
+### Non-Interactive Mode
+
+Set environment variables to skip all prompts:
+
+**Option 1: Use Existing Kubeconfig**
 
 ```bash
-export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
-kubectl get nodes
+export KUBECONFIG=/path/to/kubeconfig
+export KUBE_CLUSTER_NAME=kubernetes
+export OIDC_ISSUER_URL=https://auth.example.com/realms/opencenter
+export OIDC_CLIENT_ID=opencenter
+export OIDC_CLIENT_SECRET=your-secret
+export KUBE_CONTEXT_NAME=oidc
+export KUBE_USER_NAME=oidc
+
+./setup-opencenter-kube-oidc.sh
 ```
 
-You'll be prompted for device code authentication. Follow the URL and enter the code displayed.
+**Option 2: Create New Kubeconfig**
 
-## Configuration Options
+```bash
+export KUBE_API_SERVER=https://10.0.0.1:6443
+export KUBE_CLUSTER_NAME=kubernetes
+export KUBE_CA_CERT=/path/to/ca.crt  # Optional
+export OIDC_ISSUER_URL=https://auth.example.com/realms/opencenter
+export OIDC_CLIENT_ID=opencenter
+export OIDC_CLIENT_SECRET=your-secret
+export KUBE_CONTEXT_NAME=oidc
+export KUBE_USER_NAME=oidc
 
-### Required Environment Variables
+./setup-opencenter-kube-oidc.sh
+```
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `OIDC_ISSUER_URL` | OpenCenter Keycloak issuer URL | `https://auth.demo.stage.sjc3.k8s.opencenter.cloud/realms/opencenter` |
-| `OIDC_CLIENT_SECRET` | OIDC client secret from Keycloak | `xxxxxx` |
-| `KUBE_CLUSTER_NAME` | Kubernetes cluster name in your kubeconfig | `cluster.local`|
+---
 
-### Optional Environment Variables
+## Environment Variables
+
+### Required (for non-interactive)
+
+| Variable | Description |
+|----------|-------------|
+| `OIDC_ISSUER_URL` | Keycloak issuer URL |
+| `OIDC_CLIENT_SECRET` | OIDC client secret |
+| `KUBE_CLUSTER_NAME` | Cluster name (for existing kubeconfig) |
+| OR `KUBE_API_SERVER` | API server URL (for new kubeconfig) |
+
+### Optional
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `KUBECONFIG` | `~/.kube/config` | Kubeconfig file path |
 | `OIDC_CLIENT_ID` | `opencenter` | OIDC client ID |
-| `OIDC_GRANT_TYPE` | `device-code` | OAuth2 grant type |
-| `OIDC_SKIP_OPEN_BROWSER` | `true` | Skip automatic browser opening |
-| `KUBE_CONTEXT_NAME` | `oidc` | Name for the kubectl context |
-| `KUBE_USER_NAME` | `oidc` | Name for the kubectl user |
-| `KUBECONFIG` | `~/.kube/config` | Path to kubeconfig file |
+| `KUBE_CONTEXT_NAME` | `oidc` | Context name |
+| `KUBE_USER_NAME` | `oidc` | User name |
+| `KUBE_CA_CERT` | - | CA certificate path |
+
+---
 
 ## Usage Examples
 
-### Basic Setup
+### Example 1: Update Existing Kubeconfig
 
-```bash
-export OIDC_ISSUER_URL="https://auth.demo.stage.sjc3.k8s.opencenter.cloud/realms/opencenter"
-export OIDC_CLIENT_SECRET="your-secret"
-export KUBE_CLUSTER_NAME="kubernetes"
+``` bash
+# bash setup-opencenter-kube-oidc.sh
 
-./setup-opencenter-kube-oidc.sh
+========================================================================
+
+                   OpenCenter OIDC Authentication Setup
+
+   This script will configure your Kubernetes cluster access using
+   OpenCenter's Keycloak authentication system.
+
+========================================================================
+
+[*] Found existing kubeconfig at: /root/.kube/config
+
+Do you want to use this existing kubeconfig? (y/n): y
+[OK] Backed up kubeconfig to: /root/.kube/config.backup.20251203_080013
+
+==========================================================================
+                    Cluster Configuration
+==========================================================================
+
+[*] Using existing kubeconfig
+
+Available clusters in kubeconfig:
+     1 cluster.local
+
+Enter cluster name to use: cluster.local
+
+==========================================================================
+                    OIDC Configuration
+==========================================================================
+
+Enter OIDC Issuer URL (e.g., <https://auth.example.com/realms/opencenter>): <https://auth.example.com/realms/opencenter>
+Enter OIDC Client ID (default: opencenter):
+Enter OIDC Client Secret:
+Enter context name (default: oidc):
+Enter user name (default: oidc):
+
+==========================================================================
+                    Installing Dependencies
+==========================================================================
+
+[+] Installing krew...
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+Adding "default" plugin index from <https://github.com/kubernetes-sigs/krew-index.git>.
+Updated the local copy of plugin index.
+Installing plugin: krew
+Installed plugin: krew
+\
+ | Use this plugin:
+ |  kubectl krew
+ | Documentation:
+ |  <https://krew.sigs.k8s.io/>
+ | Caveats:
+ | \
+ |  | krew is now installed! To start using kubectl plugins, you need to add
+ |  | krew's installation directory to your PATH:
+ |  |
+ |  |   * macOS/Linux:
+ |  |     - Add the following to your ~/.bashrc or ~/.zshrc:
+ |  |         export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+ |  |     - Restart your shell.
+ |  |
+ |  |   * Windows: Add %USERPROFILE%\.krew\bin to your PATH environment variable
+ |  |
+ |  | To list krew commands and to get help, run:
+ |  |   $ kubectl krew
+ |  | For a full list of available plugins, run:
+ |  |   $ kubectl krew search
+ |  |
+ |  | You can find documentation at
+ |  |   <https://krew.sigs.k8s.io/docs/user-guide/quickstart/>.
+ | /
+/
+[OK] Krew installed
+[+] Installing kubectl oidc-login plugin...
+Updated the local copy of plugin index.
+Installing plugin: oidc-login
+Installed plugin: oidc-login
+\
+ | Use this plugin:
+ |  kubectl oidc-login
+ | Documentation:
+ |  <https://github.com/int128/kubelogin>
+ | Caveats:
+ | \
+ |  | You need to setup the OIDC provider, Kubernetes API server, role binding and kubeconfig.
+ | /
+/
+WARNING: You installed plugin "oidc-login" from the krew-index plugin repository.
+   These plugins are not audited for security by the Krew maintainers.
+   Run them at your own risk.
+[OK] oidc-login plugin installed
+[+] Installing yq...
+[OK] yq installed
+
+==========================================================================
+                    Configuring Kubeconfig
+==========================================================================
+
+[*] Setting up OIDC user...
+User "oidc" set.
+[OK] OIDC user configured
+[*] Creating context...
+Context "oidc" created.
+Switched to context "oidc".
+[OK] Context created and activated
+[*] Patching kubeconfig...
+[OK] Kubeconfig patched
+
+==========================================================================
+
+              OpenCenter OIDC Setup Complete!
+
+==========================================================================
+
+Configuration Summary:
+
+- Cluster: cluster.local
+- Context: oidc
+- User: oidc
+- Kubeconfig: /root/.kube/config
+- Backup: /root/.kube/config.backup.20251203_080013
+
+Next Steps:
+
+  1. Add krew to your PATH:
+     export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+
+  2. Test your connection:
+     kubectl get nodes
+
+  3. Follow device code authentication prompt
+
+# kubectl config get-contexts
+CURRENT   NAME                             CLUSTER         AUTHINFO           NAMESPACE
+          kubernetes-admin@cluster.local   cluster.local   kubernetes-admin
+*         oidc                             cluster.local   oidc     
+
+# export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+# kubectl get nodes
+Please visit the following URL in your browser: <https://auth.example.com/realms/opencenter/device?user_code=TAAK-DFDE>
 ```
 
-### Using Environment File
+### Example 2: Create New Kubeconfig (Non-Interactive)
 
-```bash
-# Create .env file
-cat > .env << 'EOF'
-export OIDC_ISSUER_URL="https://auth.demo.stage.sjc3.k8s.opencenter.cloud/realms/opencenter"
-export OIDC_CLIENT_SECRET="your-secret"
-export KUBE_CLUSTER_NAME="cluster.local"
-EOF
+``` bash
+export KUBE_API_SERVER=<https://10.0.0.1:443>
+export KUBE_CA_CERT=/root/ca.crt
+export OIDC_ISSUER_URL=<https://auth.example.com/realms/opencenter>
+export OIDC_CLIENT_SECRET=xxxxxxxxxxx
+export OIDC_CLIENT_ID=opencenter
+export KUBE_CONTEXT_NAME=oidc
+export KUBE_USER_NAME=oidc
+export KUBE_CLUSTER_NAME=staging
 
-# Source and run
-source .env
-./setup-opencenter-kube-oidc.sh
+# bash setup-opencenter-kube-oidc.sh
+
+========================================================================
+
+                   OpenCenter OIDC Authentication Setup
+
+   This script will configure your Kubernetes cluster access using
+   OpenCenter's Keycloak authentication system.
+
+========================================================================
+
+[*] Running in non-interactive mode (environment variables detected)
+
+==========================================================================
+                    Installing Dependencies
+==========================================================================
+
+[+] Installing krew...
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+Adding "default" plugin index from <https://github.com/kubernetes-sigs/krew-index.git>.
+Updated the local copy of plugin index.
+Installing plugin: krew
+Installed plugin: krew
+\
+ | Use this plugin:
+ |  kubectl krew
+ | Documentation:
+ |  <https://krew.sigs.k8s.io/>
+ | Caveats:
+ | \
+ |  | krew is now installed! To start using kubectl plugins, you need to add
+ |  | krew's installation directory to your PATH:
+ |  |
+ |  |   * macOS/Linux:
+ |  |     - Add the following to your ~/.bashrc or ~/.zshrc:
+ |  |         export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+ |  |     - Restart your shell.
+ |  |
+ |  |   * Windows: Add %USERPROFILE%\.krew\bin to your PATH environment variable
+ |  |
+ |  | To list krew commands and to get help, run:
+ |  |   $ kubectl krew
+ |  | For a full list of available plugins, run:
+ |  |   $ kubectl krew search
+ |  |
+ |  | You can find documentation at
+ |  |   <https://krew.sigs.k8s.io/docs/user-guide/quickstart/>.
+ | /
+/
+[OK] Krew installed
+[+] Installing kubectl oidc-login plugin...
+Updated the local copy of plugin index.
+Installing plugin: oidc-login
+Installed plugin: oidc-login
+\
+ | Use this plugin:
+ |  kubectl oidc-login
+ | Documentation:
+ |  <https://github.com/int128/kubelogin>
+ | Caveats:
+ | \
+ |  | You need to setup the OIDC provider, Kubernetes API server, role binding and kubeconfig.
+ | /
+/
+WARNING: You installed plugin "oidc-login" from the krew-index plugin repository.
+   These plugins are not audited for security by the Krew maintainers.
+   Run them at your own risk.
+[OK] oidc-login plugin installed
+[+] Installing yq...
+[OK] yq installed
+
+==========================================================================
+                    Configuring Kubeconfig
+==========================================================================
+
+[*] Setting up cluster configuration...
+Cluster "staging" set.
+[OK] Cluster configured with CA certificate
+[*] Setting up OIDC user...
+User "oidc" set.
+[OK] OIDC user configured
+[*] Creating context...
+Context "oidc" created.
+Switched to context "oidc".
+[OK] Context created and activated
+[*] Patching kubeconfig...
+[OK] Kubeconfig patched
+
+==========================================================================
+
+              OpenCenter OIDC Setup Complete!
+
+==========================================================================
+
+Configuration Summary:
+
+- Cluster: staging
+- Context: oidc
+- User: oidc
+- Kubeconfig: /root/.kube/config
+
+Next Steps:
+
+  1. Add krew to your PATH:
+     export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+
+  2. Test your connection:
+     kubectl get nodes
+
+  3. Follow device code authentication prompt
+
+---
+
+# kubectl config get-contexts
+CURRENT   NAME   CLUSTER   AUTHINFO   NAMESPACE
+*         oidc   staging   oidc
+
+# export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+# kubectl get nodes
+Please visit the following URL in your browser: <https://auth.example.com/realms/opencenter/device?user_code=GLNY-DFDD>
 ```
 
-## Authentication Flow
-
-The script configures **device code authentication**, which works as follows:
-
-1. When you run a kubectl command (e.g., `kubectl get nodes`)
-2. The OIDC login plugin generates a device code
-3. You will see output like:
-
-   ```
-   Please visit the following URL in your browser: https://auth.demo.stage.sjc3.k8s.opencenter.cloud/realms/opencenter/device?user_code=PGUD-SDJD
-   ```
-
-4. Open the URL in your browser
-5. Authenticate with your OpenCenter credentials
-6. The kubectl command completes automatically
-
-### Token Caching
-
-Once authenticated, tokens are cached locally (`~/.kube/cache/oidc-login/`). You won't need to re-authenticate until the token expires.
-
-`kubectl oidc-login clean`: Clears all cached OIDC tokens and session data used by the oidc-login plugin. This forces kubectl to perform a fresh OIDC authentication on the next command.
-
-## What the Script Installs
-
-### 1. Krew (kubectl plugin manager)
-
-- **Location (Linux)**: `~/.krew/bin/kubectl-krew`
-- **Location (macOS)**: `~/.krew/bin/kubectl-krew`
-- **Purpose**: Manages kubectl plugins
-
-### 2. kubelogin (oidc-login plugin)
-
-- **Installed via**: krew
-- **Purpose**: Handles OIDC authentication flow
-
-### 3. yq (YAML processor)
-
-- **Location (Linux)**: `~/.local/bin/yq`
-- **Location (macOS)**: `/usr/local/bin/yq`
-- **Purpose**: Patches kubeconfig YAML structure
-
-## Platform Support
-
-### Supported Operating Systems
-
-- macOS
-- Linux
-
-### Supported Architectures
-
-- x86_64 (Intel/AMD 64-bit)
-- ARM64 (Apple Silicon M1/M2/M3, ARM servers)
-
-## Updating Components
-
-### Update kubelogin Plugin
-
-```bash
-kubectl krew update
-kubectl krew upgrade oidc-login
-```
-
-### Update yq
-
-```bash
-# macOS
-brew upgrade yq
-
-# Linux (re-run installation)
-curl -fsSL "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64" -o ~/.local/bin/yq
-chmod +x ~/.local/bin/yq
-```
-
-## Uninstallation
-
-### Remove OIDC Configuration
-
-```bash
-# Remove user and context
-kubectl config delete-user oidc
-kubectl config delete-context oidc
-```
-
-### Remove Installed Tools
-
-```bash
-# Remove kubelogin plugin
-kubectl krew uninstall oidc-login
-
-# Remove krew (optional)
-rm -rf ~/.krew
-
-# Remove yq (optional)
-# macOS
-sudo rm /usr/local/bin/yq
-
-# Linux
-rm ~/.local/bin/yq
-```
+---
 
 ## Additional Resources
 
-- [OpenCenter Documentation](https://docs.opencenter.io)
+- [OpenCenter](https://github.com/rackerlabs/openCenter-gitops-base)
 - [kubelogin GitHub](https://github.com/int128/kubelogin)
 - [Kubernetes OIDC Authentication](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#openid-connect-tokens)
 - [Keycloak Documentation](https://www.keycloak.org/documentation)
